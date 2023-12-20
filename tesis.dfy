@@ -9,7 +9,7 @@ datatype Expresion =
 
 datatype Condition =
   | K(boolean:bool)
-  | Not(boolean: Condition)
+  | Not(condition: Condition)
   | Imply(ConditonA: Condition, ConditonB: Condition) 
   | And(ConditonA: Condition, ConditonB: Condition) 
   | Substitution(substitution: map<string, Expresion>) // revisar
@@ -82,53 +82,47 @@ method HeadTail (s: seq<Specification>) returns (x:Specification,xs:seq<Specific
     } else {
         // Handle the case when the sequence is empty
         // In this case, return a default value for the type T and an empty sequence
-        return s[0],[];
+        if |s| == 0 {
+          return Instruction(K(true),Skip,K(true)), [Instruction(K(true),Skip,K(true))]; // revisar
+        }
+        
     }
 }
 
 function Correctness (three: THoare): (seq<Specification>, seq<Condition>){
 // revisar el caso de seq<condition> porque es la "C"
-  var spec := [];
-  var conditions := [];
-  
+
   match three
 
-  case Assign(identifiers, condition) => (spec, conditions + [condition])
+  case Assign(identifiers, condition) => ([], [condition])
         // Realizar acciones para el caso de Assign
       // Puedes acceder a identifiers, values y condition aquí
-  case Secuence(tree1, tree2) => {
+  case If(condition, tree1, tree2) => ([],[condition])
+      // Realizar acciones para el caso de If
+      // Puedes acceder a condition, tree1 y tree2 aquí  
+  case While(pInvariant, condition, tree) => ([],[condition])
+      // Realizar acciones para el caso de While
+      // Puedes acceder a pInvariant, condition y tree aquí
+  case Secuence(tree1, tree2) => 
       // Realizar acciones para el caso de Secuence
       // Puedes acceder a tree1 y tree2 aquí
       match Correctness(tree1)
 
-      case (s1,cs1) => {
-        match s1[0]
+      case (s1,cs1) => 
+        if(|s1|>0) then
+        match s1[0] // revisar
 
-        case Instruction(pc1, p1, c1) => {
+        case Instruction(pc1, p1, c1) => 
           match Correctness(tree2)
 
-          case (s2,cs2) => {
+          case (s2,cs2) => 
+          if(|s2|>0) then
             match s2[0]
 
-            case Instruction(pc2, p2, c2) => ([Instruction(K(true),Skip,K(true))], [K(true)])
-            case _ =>([Instruction(K(true),Skip,K(true))], [K(true)])
-            
-          }
-          case _ => ([Instruction(K(true),Skip,K(true))], [K(true)])
-        }
-        case _ => ([Instruction(K(true),Skip,K(true))], [K(true)])
-      }
-      case _ => ([Instruction(K(true),Skip,K(true))], [K(true)])
-  }
-  case If(condition, tree1, tree2) => (spec,conditions)
-      // Realizar acciones para el caso de If
-      // Puedes acceder a condition, tree1 y tree2 aquí
+            case Instruction(pc2, p2, c2) => ((s1 + s2),(cs1 + cs2 + [c1] + [c2]))
 
-  
-  case While(pInvariant, condition, tree) => (spec,conditions)
-  case _ => (spec,conditions)
-      // Realizar acciones para el caso de While
-      // Puedes acceder a pInvariant, condition y tree aquí
+      else (s1, cs1 + cs2 + [c1])
+      else ([], [])
 }
 //------------------------------------------------------------------------------------------------------
 
