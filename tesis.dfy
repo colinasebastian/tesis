@@ -18,11 +18,12 @@ datatype Condition =
   | Equals(e1:Expresion, e2: Expresion)
 
 datatype Program =
-  | Skip // revisar
+  // | Skip // revisar
   | Assign(assignments: map<string, Expresion>)
   | Secuence(instructions: Program, instruction: Program)
-  | If(condition: Condition, pThen: Program, pElse: Program)
-  | While(pInvariant: Condition, condition: Condition, body: Program)
+  | If(condition: Condition, pThen: Program, pElse: Program,cp:Condition)
+  //en la foto de vcgp vemos que el while tiene un c prima
+  | While(pInvariant: Condition, condition: Condition, body: Program,cp:Condition)
 
 datatype Specification =
   | Instruction(precondition: Condition, program: Program, postcondition: Condition)
@@ -30,9 +31,8 @@ datatype Specification =
 //HOORE TREES DATATYPE
 datatype THoare =
     Assign(assignments:map<string,Expresion>, condition: Condition)
-    // revisar el caso de la condition porque tato habla de una postcondicion
   | Secuence(tree1: THoare, tree2: THoare)
-  | If(condition: Condition, tree1: THoare, tree2: THoare)
+  | If(condition: Condition, tree1: THoare, tree2: THoare,cp:Condition)
   | While(pInvariant: Condition, condition: Condition, tree: THoare) 
 
 //------------------------------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ function Correctness (three: THoare): (Specification, seq<Condition>){
   case Assign(identifiers, condition) => (
     Instruction(Condition.Substitution(identifiers),Program.Assign(identifiers),condition),[]
   )
-  case If(condition, tree1, tree2) => (
+  case If(condition, tree1, tree2,cp) => (
       match Correctness(tree1)
 
       case (s1,cs1) =>
@@ -55,16 +55,15 @@ function Correctness (three: THoare): (Specification, seq<Condition>){
 
         case (s2,cs2) => 
           match s2
-          // revisar c2 (c prima) del if (mirar imagen)
-          // revisar concatenacion de condiciones con las de la imagen teniendo en cuenta q implique el c2 anterior
-          case Instruction(pc2, p2, c2) => (Instruction(And(Imply(condition,pc1),Imply(Not(condition),pc2)),Program.If(condition,p1,p2),c2),(cs1 + cs2 + [pc1] + [pc2])))
+          // revisar cp
+          case Instruction(pc2, p2, c2) => (Instruction(And(Imply(condition,pc1),Imply(Not(condition),pc2)),Program.If(condition,p1,p2,cp),cp),(cs1 + cs2 + [Imply(pc1,cp),Imply(pc2,cp)])))
   
   case While(pInvariant, condition, tree) => (
       match Correctness(tree)
 
       case (s,cs) => 
         match s
-
+        // c prima es c?
         case Instruction(pc, p, c) => (Instruction(pInvariant,Program.While(pInvariant,condition,p),And(pInvariant,Not(condition))),cs + [Imply(And(pInvariant,condition),pc),Imply(c,pInvariant)]))
   case Secuence(tree1, tree2) => (
       match Correctness(tree1)
@@ -85,57 +84,40 @@ function Correctness (three: THoare): (Specification, seq<Condition>){
 //------------------------------------------------------------------------------------------------------
 //--------------------------------------- VCG ----------------------------------------------------------
 
-// debreiamos llamar a correctness en algun momento?
+// falta la condition en el retorno?
 
-function VCG (specification: Specification): seq<Condition>{
+function VCG (specification: Specification): (THoare,seq<Condition>){
   match specification
 
-  case Instruction(precondition, program, postcondition) => VCGP(program,postcondition)
+  case Instruction(precondition, program, postcondition) => (
+    match VCGP(program,postcondition)
 
+    case (c,th,cs) => (th,cs)
+    )
 
-    // case Skip => [precondition]
-    // case Assign(assignments) => [precondition]
-    // case Secuence(instructions, instruction) => (
-    //   match VCG(Instruction(precondition, instructions, postcondition))
-
-    //   case cs1 => 
-    //     match VCG(Instruction(cs1, instruction, postcondition))
-
-    //     case cs2 => cs2)
-    // case If(condition, pThen, pElse) => (
-    //   match VCG(Instruction(And(precondition,condition), pThen, postcondition))
-
-    //   case cs1 => 
-    //     match VCG(Instruction(And(precondition,Not(condition)), pElse, postcondition))
-
-    //     case cs2 => cs1 + cs2)
-    // case While(pInvariant, condition, body) => (
-    //   match VCG(Instruction(And(precondition,pInvariant), body, pInvariant))
-
-    //   case cs1 => [Imply(And(precondition, pInvariant), cs1)])
 }
 
-function VCGP (program: Program, postcondition: Condition): seq<Condition>{
+function VCGP (program: Program, postcondition: Condition): (Condition,THoare,seq<Condition>){
   match program
-
-  case Skip => [postcondition]
-  case Assign(assignments) => [postcondition]
+  case Assign(assignments) => (Condition.Substitution(assignments),THoare.Assign(assignments,postcondition),[])
   case Secuence(instructions, instruction) => (
     match VCGP(instructions, postcondition)
 
-    case cs1 => 
-      match VCGP(instruction, cs1)
+    case (c1,th1,cs1) => 
+      match VCGP(instruction, c1)
 
-      case cs2 => cs2)
-  case If(condition, pThen, pElse) => (
+      case (c2,th2,cs2) => (c2,THoare.Secuence(th1,th2),cs1 + cs2))
+  case If(condition, pThen, pElse,cp) => (
     match VCGP(pThen, postcondition)
 
-    case cs1 => 
+    case (c1,th1,cs1) => 
       match VCGP(pElse, postcondition)
 
-      case cs2 => cs1 + cs2)
-  case While(pInvariant, condition, body) => (
+      case (c2,th2,cs2) => (And(Imply(condition,c1),Imply(Not(condition),c2)),THoare.If(condition,th1,th2,cp),cs1 + cs2)
+      )
+  case While(pInvariant, condition, body, cp) => (
     match VCGP(body, pInvariant)
 
-    case cs1 => [Imply(And(pInvariant, condition), cs1)])
+    case (c,th,cs) => (pInvariant,THoare.While(pInvariant,condition,th),cs + [Imply(And(pInvariant,condition),c),Imply(And(pInvariant,Not(condition)),cp)])
+    )
 }
