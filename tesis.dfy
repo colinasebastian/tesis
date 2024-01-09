@@ -86,7 +86,7 @@ function VCG (specification: Specification): (THoare,seq<Condition>){
   case Instruction(precondition, program, postcondition) => (
     match VCGP(program,postcondition)
 
-    case (c,th,cs) => (th,cs)
+    case (c,th,cs) => (th,cs + [Imply(precondition,postcondition)])
     )
 
 }
