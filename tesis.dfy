@@ -115,3 +115,24 @@ function VCGP (program: Program, postcondition: Condition): (Condition,THoare,se
     case (c,th,cs) => (pInvariant,THoare.While(pInvariant,condition,th),cs + [Imply(And(pInvariant,condition),c),Imply(And(pInvariant,Not(condition)),postcondition)])
     )
 }
+
+
+lemma VCGCorrectness: forall (specification: Specification) :: Correctness(VCG(specification)) == specification
+  proof
+    forall (specification: Specification) :: 
+      match Correctness(VCG(specification))
+      case (s,cs) => 
+        match s
+        case Instruction(precondition, program, postcondition) => 
+          match VCG(specification)
+          case (th,cs2) => 
+            match th
+            case THoare.Assign(assignments, postcondition) => 
+              (Instruction(precondition, program, postcondition),cs + cs2)
+            case THoare.Secuence(tree1, tree2) => 
+              (Instruction(precondition, program, postcondition),cs + cs2)
+            case THoare.If(condition, tree1, tree2,cp) => 
+              (Instruction(precondition, program, postcondition),cs + cs2)
+            case THoare.While(pInvariant, condition, tree) => 
+              (Instruction(precondition, program, postcondition),cs + cs2)
+  qed
