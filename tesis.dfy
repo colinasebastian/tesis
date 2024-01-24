@@ -37,11 +37,11 @@ datatype THoare =
 //------------------------------------------------------------------------------------------------------
 //--------------------------------------- CORRECTNESS ---------------------------------------------------
 
-function Correctness (three: THoare): (Specification, seq<Condition>){
+function Correctness (three: THoare): (Specification, set<Condition>){
   match three
 
   case Assign(identifiers, condition) => (
-    Instruction(Condition.Substitution(identifiers),Program.Assign(identifiers),condition),[]
+    Instruction(Condition.Substitution(identifiers),Program.Assign(identifiers),condition),{}
   )
   case If(condition, tree1, tree2,cp) => (
       match Correctness(tree1)
@@ -54,14 +54,14 @@ function Correctness (three: THoare): (Specification, seq<Condition>){
 
         case (s2,cs2) => 
           match s2
-          case Instruction(pc2, p2, c2) => (Instruction(And(Imply(condition,pc1),Imply(Not(condition),pc2)),Program.If(condition,p1,p2,cp),cp),(cs1 + cs2 + [Imply(pc1,cp),Imply(pc2,cp)])))
+          case Instruction(pc2, p2, c2) => (Instruction(And(Imply(condition,pc1),Imply(Not(condition),pc2)),Program.If(condition,p1,p2,cp),cp),(cs1 + cs2 + {Imply(pc1,cp),Imply(pc2,cp)})))
   
   case While(pInvariant, condition, tree) => (
       match Correctness(tree)
 
       case (s,cs) => 
         match s
-        case Instruction(pc, p, c) => (Instruction(pInvariant,Program.While(pInvariant,condition,p),And(pInvariant,Not(condition))),cs + [Imply(And(pInvariant,condition),pc),Imply(c,pInvariant)]))
+        case Instruction(pc, p, c) => (Instruction(pInvariant,Program.While(pInvariant,condition,p),And(pInvariant,Not(condition))),cs + {Imply(And(pInvariant,condition),pc),Imply(c,pInvariant)}))
   case Secuence(tree1, tree2) => (
       match Correctness(tree1)
 
@@ -73,27 +73,29 @@ function Correctness (three: THoare): (Specification, seq<Condition>){
 
           case (s2,cs2) => 
             match s2
-            case Instruction(pc2, p2, c2) => (Instruction(pc1,Program.Secuence(p1,p2),c2),(cs1 + cs2 + [c1] + [pc2])))
+            case Instruction(pc2, p2, c2) => (Instruction(pc1,Program.Secuence(p1,p2),c2),(cs1 + cs2 + {c1} + {pc2})))
 
 }
 
 //------------------------------------------------------------------------------------------------------
 //--------------------------------------- VCG ----------------------------------------------------------
 
-function VCG (specification: Specification): (THoare,seq<Condition>){
+function VCG (specification: Specification): (THoare,set<Condition>){
   match specification
 
   case Instruction(precondition, program, postcondition) => (
     match VCGP(program,postcondition)
 
-    case (c,th,cs) => (th,cs + [Imply(precondition,postcondition)])
+    case (c,th,cs) => (
+      th,(cs + {Imply(precondition,postcondition)})
+      )
     )
 
 }
 
-function VCGP (program: Program, postcondition: Condition): (Condition,THoare,seq<Condition>){
+function VCGP (program: Program, postcondition: Condition): (Condition,THoare,set<Condition>){
   match program
-  case Assign(assignments) => (Condition.Substitution(assignments),THoare.Assign(assignments,postcondition),[])
+  case Assign(assignments) => (Condition.Substitution(assignments),THoare.Assign(assignments,postcondition),{})
   case Secuence(instructions, instruction) => (
     match VCGP(instructions, postcondition)
 
@@ -112,27 +114,13 @@ function VCGP (program: Program, postcondition: Condition): (Condition,THoare,se
   case While(pInvariant, condition, body) => (
     match VCGP(body, pInvariant)
 
-    case (c,th,cs) => (pInvariant,THoare.While(pInvariant,condition,th),cs + [Imply(And(pInvariant,condition),c),Imply(And(pInvariant,Not(condition)),postcondition)])
+    case (c,th,cs) => (pInvariant,THoare.While(pInvariant,condition,th),cs + {Imply(And(pInvariant,condition),c),Imply(And(pInvariant,Not(condition)),postcondition)})
     )
 }
 
 
-lemma VCGCorrectness: forall (specification: Specification) :: Correctness(VCG(specification)) == specification
-  proof
-    forall (specification: Specification) :: 
-      match Correctness(VCG(specification))
-      case (s,cs) => 
-        match s
-        case Instruction(precondition, program, postcondition) => 
-          match VCG(specification)
-          case (th,cs2) => 
-            match th
-            case THoare.Assign(assignments, postcondition) => 
-              (Instruction(precondition, program, postcondition),cs + cs2)
-            case THoare.Secuence(tree1, tree2) => 
-              (Instruction(precondition, program, postcondition),cs + cs2)
-            case THoare.If(condition, tree1, tree2,cp) => 
-              (Instruction(precondition, program, postcondition),cs + cs2)
-            case THoare.While(pInvariant, condition, tree) => 
-              (Instruction(precondition, program, postcondition),cs + cs2)
-  qed
+lemma VCGCorrectness(specification: Specification)
+{
+  var (vcgResult, cs) := VCG(specification);
+  assert Correctness(vcgResult) == (specification, cs);
+}
