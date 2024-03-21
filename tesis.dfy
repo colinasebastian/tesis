@@ -133,7 +133,7 @@ decreases program
 }
 
 
-predicate Hoare(prog: Specification, vcs: multiset<Condition>)
+ghost predicate Hoare(prog: Specification, vcs: multiset<Condition>)
 
 decreases var Instruction(precondition, program, postcondition)  := prog ; program, |vcs|
 
