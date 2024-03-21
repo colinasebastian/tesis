@@ -1,10 +1,10 @@
 //-------------------------------- MINIMALLY ANNOTATED PROGRAM -----------------------------------------
-datatype Expresion = 
+datatype Expression = 
 | L(number: int)
 | Var(varName: string)
-| sum(n1: Expresion, n2: Expresion)
-| substract(n1: Expresion, n2: Expresion)
-| mul(n1: Expresion, n2: Expresion)
+| sum(n1: Expression, n2: Expression)
+| substract(n1: Expression, n2: Expression)
+| mul(n1: Expression, n2: Expression)
 
 
 datatype Condition =
@@ -12,13 +12,13 @@ datatype Condition =
   | Not(condition: Condition)
   | Imply(ConditonA: Condition, ConditonB: Condition) 
   | And(ConditonA: Condition, ConditonB: Condition) 
-  | Substitution(substitution: map<string, Expresion>, condition: Condition)
-  | Less(e1:Expresion, e2: Expresion)
-  | Greater(e1:Expresion, e2: Expresion)
-  | Equals(e1:Expresion, e2: Expresion)
+  | Substitution(substitution: map<string, Expression>, condition: Condition)
+  | Less(e1:Expression, e2: Expression)
+  | Greater(e1:Expression, e2: Expression)
+  | Equals(e1:Expression, e2: Expression)
 
 datatype Program =
-  | Assign(assignments: map<string, Expresion>)
+  | Assign(assignments: map<string, Expression>)
   | Secuence(p1: Program, p2: Program)
   | If(condition: Condition, pThen: Program, pElse: Program)
   | While(pInvariant: Condition, condition: Condition, body: Program)
@@ -28,7 +28,7 @@ datatype Specification =
 
 //HOORE TREES DATATYPE
 datatype THoare =
-    Assign(assignments:map<string,Expresion>, condition: Condition)
+    Assign(assignments:map<string,Expression>, condition: Condition)
   | Secuence(tree1: THoare, tree2: THoare)
   | If(condition: Condition, tree1: THoare, tree2: THoare,cp:Condition)
   | While(pInvariant: Condition, condition: Condition, tree: THoare) 
