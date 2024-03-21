@@ -19,7 +19,7 @@ datatype Condition =
 
 datatype Program =
   | Assign(assignments: map<string, Expression>)
-  | Secuence(p1: Program, p2: Program)
+  | Sequence(p1: Program, p2: Program)
   | If(condition: Condition, pThen: Program, pElse: Program)
   | While(pInvariant: Condition, condition: Condition, body: Program)
 
@@ -29,7 +29,7 @@ datatype Specification =
 //HOORE TREES DATATYPE
 datatype THoare =
     Assign(assignments:map<string,Expression>, condition: Condition)
-  | Secuence(tree1: THoare, tree2: THoare)
+  | Sequence(tree1: THoare, tree2: THoare)
   | If(condition: Condition, tree1: THoare, tree2: THoare,cp:Condition)
   | While(pInvariant: Condition, condition: Condition, tree: THoare) 
 
@@ -61,7 +61,7 @@ datatype THoare =
 //       case (s,cs) => 
 //         match s
 //         case Instruction(pc, p, c) => (Instruction(pInvariant,Program.While(pInvariant,condition,p),And(pInvariant,Not(condition))),cs + {Imply(And(pInvariant,condition),pc),Imply(c,pInvariant)}))
-//   case Secuence(tree1, tree2) => (
+//   case Sequence(tree1, tree2) => (
 //       match Correctness(tree1)
 
 //       case (s1,cs1) => 
@@ -72,7 +72,7 @@ datatype THoare =
 
 //           case (s2,cs2) => 
 //             match s2
-//             case Instruction(pc2, p2, c2) => (Instruction(pc1,Program.Secuence(p1,p2),c2),(cs1 + cs2 + {c1} + {pc2})))
+//             case Instruction(pc2, p2, c2) => (Instruction(pc1,Program.Sequence(p1,p2),c2),(cs1 + cs2 + {c1} + {pc2})))
 
 // }
 
@@ -98,7 +98,7 @@ decreases program
 {
   match program
   case Assign(assignments) => (Condition.Substitution(assignments,postcondition),multiset{})
-  case Secuence(p1, p2) => (
+  case Sequence(p1, p2) => (
     match VCGP(p2, postcondition)
 
     case (c1,cs1) => (
@@ -144,7 +144,7 @@ decreases var Instruction(precondition, program, postcondition)  := prog ; progr
     case Assign(assignments) => (
       precondition == Condition.Substitution(assignments,postcondition) && vcs == multiset{}
     )
-    case Secuence(p1, p2) => (
+    case Sequence(p1, p2) => (
       exists s,vcs1,vcs2 :: Hoare(Instruction(precondition, p1, s), vcs1) && Hoare(Instruction(s, p2, postcondition), vcs2) && vcs == vcs1 + vcs2
     )
     case If(condition, p1, p2) => (
