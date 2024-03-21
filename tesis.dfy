@@ -18,7 +18,6 @@ datatype Condition =
   | Equals(e1:Expresion, e2: Expresion)
 
 datatype Program =
-  // | Skip // revisar
   | Assign(assignments: map<string, Expresion>)
   | Secuence(p1: Program, p2: Program)
   | If(condition: Condition, pThen: Program, pElse: Program)
